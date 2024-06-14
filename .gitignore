@@ -1,0 +1,6 @@
+venv
+Fake.csv
+True.csv
+WELFake_Dataset.csv
+dake_or_real_news.csv
+*.csv
