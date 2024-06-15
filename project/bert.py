@@ -21,15 +21,8 @@ if __name__ == '__main__':
     x = df['text']
     y = df['label']
     
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.1, random_state=42, shuffle=True, stratify=y)
-
-    # Carica il modello BERT base
-    # bert_preprocess = hub.KerasLayer('https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3', trainable=False)
-    # bert_model = hub.KerasLayer('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/3', trainable=False)
-    #
-    # text_input = Input(shape=(), dtype=tf.string, name='text')
-    # encoder_inputs = bert_preprocess(text_input)
-    # encoder_outputs = bert_model(encoder_inputs)
+    x, x_test, y, y_test = train_test_split(x, y, test_size=0.1, random_state=42, shuffle=True, stratify=y)
+    x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.11, random_state=42, shuffle=True, stratify=y)
 
     text_input = tf.keras.layers.Input(shape=(), dtype=tf.string)
     preprocessor = BertPreprocessor.from_preset("bert_base_en_uncased")
@@ -42,8 +35,8 @@ if __name__ == '__main__':
     # sequence_output = outputs["sequence_output"]  # [batch_size, seq_length, 768].
 
     x = encoder_outputs['pooled_output']
-    # x = Dense(128, activation='relu')(x)
-    # x = Dropout(0.3)(x)
+    x = Dense(128, activation='relu')(x)
+    x = Dropout(0.3)(x)
     x = Dense(64, activation='relu')(x)
     x = Dropout(0.3)(x)
     x = Dense(2, activation='softmax')(x)
@@ -53,7 +46,7 @@ if __name__ == '__main__':
     optimizer = Adam(learning_rate=5e-5)
     model.compile(optimizer=optimizer, loss='crossentropy', metrics=['accuracy'])
     print(model.summary())
-    history = model.fit(x_train, y_train, epochs=5)
+    history = model.fit(x_train, y_train, epochs=5, validation_data=(x_val, y_val))
     model.save('MyFakeBERT')
     model.save_weights('MyFakeBERTWeights')
 
