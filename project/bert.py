@@ -1,16 +1,10 @@
 import tensorflow as tf
-import tensorflow_hub as hub
-import tensorflow_text as text
-from keras.src.layers import Dense, Dropout, Input
+from keras.src.layers import Dense, Dropout, Input, Concatenate, Conv1D, MaxPooling1D, Flatten, Embedding
 from keras.src.models import Model
-from keras.src.optimizers import Adam
+from keras.src.optimizers import Adam, Adadelta
 from keras_nlp.src.models import BertPreprocessor, BertBackbone
 import pandas as pd
 from sklearn.model_selection import train_test_split
-
-# BERT model selected           : https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-4_H-512_A-8/1
-# Preprocess model auto-selected: https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3
-
 
 if __name__ == '__main__':
     
@@ -29,28 +23,45 @@ if __name__ == '__main__':
     # preprocessor.trainable = False
     encoder_inputs = preprocessor(text_input)
     encoder = BertBackbone.from_preset("bert_base_en_uncased")
-    encoder.trainable = False
+    # encoder.trainable = False
     encoder_outputs = encoder(encoder_inputs)
     # pooled_output = outputs["pooled_output"]  # [batch_size, 768].
     # sequence_output = outputs["sequence_output"]  # [batch_size, seq_length, 768].
 
     x = encoder_outputs['pooled_output']
-    x = Dense(128, activation='relu')(x)
-    x = Dropout(0.3)(x)
-    x = Dense(64, activation='relu')(x)
-    x = Dropout(0.3)(x)
-    x = Dense(2, activation='softmax')(x)
+
+    x = Embedding(1000, 100,mask_zero=True)(x)
+
+    x1 = Conv1D(filters=128, kernel_size=3, activation='relu')(x)
+    x1 = MaxPooling1D(pool_size=5, strides=5)(x1)
+
+    x2 = Conv1D(filters=128, kernel_size=4, activation='relu')(x)
+    x2 = MaxPooling1D(pool_size=5, strides=5)(x2)
+
+    x3 = Conv1D(filters=128, kernel_size=5, activation='relu')(x)
+    x3 = MaxPooling1D(pool_size=5, strides=5)(x3)
+
+    x = Concatenate(axis=1)([x1, x2, x3])
+    x = Conv1D(filters=64, kernel_size=5, activation='relu')(x)
+    x = MaxPooling1D(pool_size=5, strides=5)(x)
+    x = Conv1D(filters=64, kernel_size=5, activation='relu')(x)
+    x = MaxPooling1D(pool_size=5, strides=5)(x)
+    x = Flatten()(x)
+    x = Dense(units=128, activation='relu')(x)
+    x = Dense(units=2, activation='softmax')(x)
+
     model = Model(text_input, x)
 
     # Costruisci il modello completo
-    optimizer = Adam(learning_rate=5e-5)
+    # optimizer = Adam(learning_rate=5e-5)
+    optimizer = Adadelta(learning_rate=0.001)
     model.compile(optimizer=optimizer, loss='crossentropy', metrics=['accuracy'])
     print(model.summary())
-    history = model.fit(x_train, y_train, epochs=5, validation_data=(x_val, y_val))
-    model.save('MyFakeBERT')
-    model.save_weights('MyFakeBERTWeights')
+    history = model.fit(x_train, y_train, epochs=5, validation_data=(x_val, y_val), batch_size=128)
 
     loss, accuracy = model.evaluate(x_test, y_test)
     print(f'Test Loss: {loss:.4f}')
     print(f'Test Accuracy: {accuracy:.4f}')
 
+    model.save('MyFakeBERT.h5')
+    model.save_weights('MyFakeBERTWeights.h5')
