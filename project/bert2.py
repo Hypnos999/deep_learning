@@ -90,9 +90,9 @@ if __name__ == '__main__':
     # optimizer = Adam(learning_rate=5e-5)
     optimizer = tf.keras.optimizers.legacy.Adadelta(learning_rate=0.001)
     # loss = tf.keras.losses.SparseCategoricalCrossentropy()
-    loss = tf.keras.losses.CategoricalCrossentropy()
-    metrics = tf.keras.metrics.CategoricalCrossentropy()
-    model.compile(optimizer=optimizer, loss=loss, metrics=[metrics])
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    # metrics = tf.keras.metrics.CategoricalCrossentropy()
+    model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
 
     print(model.summary())
     print(model.compiled_loss)
