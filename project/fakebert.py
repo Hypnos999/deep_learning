@@ -27,19 +27,24 @@ if __name__ == '__main__':
     text_input = tf.keras.layers.Input(shape=(), dtype=tf.string)
     preprocessed_inputs = preprocessor(text_input)
     encoder_outputs = encoder(preprocessed_inputs)
-    x = encoder_outputs['pooled_output']
-    x = Reshape((x.shape[1], 1))(x)  # reshape necessario per fornire i dati ai layer di Conv1D
+    for o in encoder_outputs:
+        print(o)
+    # x = encoder_outputs['pooled_output']
+    # x = Reshape((x.shape[1], 1))(x)  # reshape necessario per fornire i dati ai layer di Conv1D
+
+    x = encoder_outputs['sequence_output']
+
     # x = Embedding(30522, 100, input_length=128, trainable=True)(x)  # Embedding layer per convertire i dati in vettori di 100 dimensioni
-    x1 = Conv1D(filters=128, kernel_size=5, activation='relu')(x)
-    x1 = MaxPooling1D(pool_size=5, strides=5)(x1)
-
-    x2 = Conv1D(filters=128, kernel_size=4, activation='relu')(x)
-    x2 = MaxPooling1D(pool_size=5, strides=5)(x2)
-
-    x3 = Conv1D(filters=128, kernel_size=3, activation='relu')(x)
-    x3 = MaxPooling1D(pool_size=5, strides=5)(x3)
-
-    x = Concatenate(axis=1)([x1, x2, x3])
+    # x1 = Conv1D(filters=128, kernel_size=5, activation='relu')(x)
+    # x1 = MaxPooling1D(pool_size=5, strides=5)(x1)
+    #
+    # x2 = Conv1D(filters=128, kernel_size=4, activation='relu')(x)
+    # x2 = MaxPooling1D(pool_size=5, strides=5)(x2)
+    #
+    # x3 = Conv1D(filters=128, kernel_size=3, activation='relu')(x)
+    # x3 = MaxPooling1D(pool_size=5, strides=5)(x3)
+    #
+    # x = Concatenate(axis=1)([x1, x2, x3])
 
     x = Conv1D(filters=128, kernel_size=5, activation='relu')(x)
     x = MaxPooling1D(pool_size=5, strides=5)(x)
@@ -61,7 +66,7 @@ if __name__ == '__main__':
     model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['sparse_categorical_accuracy'])
 
     print(model.summary())
-    history = model.fit(x_train, y_train, epochs=10, validation_split=0.2, batch_size=16*2*2)
+    history = model.fit(x_train, y_train, epochs=15, validation_split=0.2, batch_size=16*2*2)
 
     loss, accuracy = model.evaluate(x_test, y_test)
     print(f'Test Loss: {loss:.4f}')
