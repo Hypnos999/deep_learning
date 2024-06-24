@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     new_df = pd.DataFrame(tf.keras.utils.pad_sequences(df["title"], padding="pre", maxlen=MAXLEN))
     #df = pd.concat((df, new_df), axis=1)
-
+    print('')
     x_train, x_test, y_train, y_test = train_test_split(new_df, df['label'], test_size=0.1, random_state=42,
                                                         shuffle=True, stratify=df['label'])
 
