@@ -1,21 +1,31 @@
 import tensorflow as tf
 from keras import Sequential
-from keras.src.layers import Dense, Dropout, Input, Concatenate, Conv1D, MaxPooling1D, Flatten, Embedding, Reshape, Bidirectional
-from keras.src.models import Model
-from keras.src.optimizers import Adam, Adadelta
-from keras_nlp.src.models import BertPreprocessor, BertBackbone, BertClassifier, BertMaskedLM
+from keras.layers import Dense, Dropout, Input, Concatenate, Conv1D, MaxPooling1D, Flatten, Embedding, Reshape, Bidirectional
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import nltk
 import re
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
+
+#nltk.download('stopwords')
+#nltk.download('punkt')
+#nltk.download('wordnet')
 
 if __name__ == '__main__':
-    df = pd.read_csv('other dataset/FakeNewsNet.csv')
-    df.dropna(inplace=True)
-    df.reset_index(inplace=True)
-    df.drop(["index", "news_url", "source_domain", "tweet_num"], axis=1, inplace=True)
-    print(df.head())
+    fake_news = pd.read_csv('data/Fake.csv')
+    fake_news['label'] = 0
+
+    true_news = pd.read_csv('data/True.csv')
+    true_news['label'] = 1
+
+    news = pd.concat([fake_news, true_news])
+    df = news[['title', 'label']]
+
+#    df = pd.read_csv('other dataset/FakeNewsNet.csv')
+#    df.dropna(inplace=True)
+#    df.reset_index(inplace=True)
+#    df.drop(["index", "news_url", "source_domain", "tweet_num"], axis=1, inplace=True)
+#    print(df.head())
 
     stopwords = nltk.corpus.stopwords.words("english")
     lemmatizer = nltk.stem.WordNetLemmatizer()
@@ -41,10 +51,10 @@ if __name__ == '__main__':
 
 
     new_df = pd.DataFrame(tf.keras.utils.pad_sequences(df["title"], padding="pre", maxlen=MAXLEN))
-    df = pd.concat((df, new_df), axis=1)
+    #df = pd.concat((df, new_df), axis=1)
 
-    x_train, x_test, y_train, y_test = train_test_split(df[cols], df['real'], test_size=0.1, random_state=42,
-                                                        shuffle=True, stratify=df['real'])
+    x_train, x_test, y_train, y_test = train_test_split(new_df, df['label'], test_size=0.1, random_state=42,
+                                                        shuffle=True, stratify=df['label'])
 
     model = Sequential(
         layers=(
@@ -53,11 +63,11 @@ if __name__ == '__main__':
             Dropout(0.2),
             Bidirectional(tf.keras.layers.LSTM(128)),
             Dropout(0.2),
-            Dense(2, activation="softmax")
+            Dense(1, activation="sigmoid")
         )
     )
 
-    model.compile(optimizer="adam", loss="crossentropy", metrics=["accuracy"])
+    model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
     print(model.summary())
     history = model.fit(x_train, y_train, epochs=10, validation_split=0.2, batch_size=16*2*2*2*2)
 
@@ -67,27 +77,16 @@ if __name__ == '__main__':
 
     model.save_weights('lstm.weights.h5')
 
-    # "Accuracy"
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'validation'], loc='upper left')
-    plt.show()
 
-    # "Loss"
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'validation'], loc='upper left')
-    plt.show()
-
-    # results:
+    # results WELFAKE:
     # acc 97%
     # val acc 83.5%
     # loss 0.27
     # val loss 0.39
+
+    # results
+    # acc 99%
+    # val acc 94%
+    # loss 0.02
+    #val loss 0.017
 

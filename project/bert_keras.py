@@ -2,7 +2,7 @@ import tensorflow as tf
 from keras.src.layers import Dense, Dropout, Input, Concatenate, Conv1D, MaxPooling1D, Flatten, Embedding, Reshape
 from keras.src.models import Model
 from keras.src.optimizers import Adam, Adadelta
-from keras_nlp.src.models import BertPreprocessor, BertBackbone, BertClassifier, BertMaskedLM
+from keras_nlp.models import BertPreprocessor, BertBackbone, BertClassifier, BertMaskedLM
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
