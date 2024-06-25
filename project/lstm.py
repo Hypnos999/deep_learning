@@ -1,3 +1,5 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from keras import Sequential
 from keras.layers import Dense, Dropout, Input, Concatenate, Conv1D, MaxPooling1D, Flatten, Embedding, Reshape, Bidirectional
@@ -20,12 +22,6 @@ if __name__ == '__main__':
 
     news = pd.concat([fake_news, true_news])
     df = news[['title', 'label']]
-
-#    df = pd.read_csv('other dataset/FakeNewsNet.csv')
-#    df.dropna(inplace=True)
-#    df.reset_index(inplace=True)
-#    df.drop(["index", "news_url", "source_domain", "tweet_num"], axis=1, inplace=True)
-#    print(df.head())
 
     stopwords = nltk.corpus.stopwords.words("english")
     lemmatizer = nltk.stem.WordNetLemmatizer()
@@ -74,12 +70,6 @@ if __name__ == '__main__':
     print(f'Test Accuracy: {accuracy:.4f}')
 
     model.save_weights('lstm.weights.h5')
-
-    # results WELFAKE:
-    # acc 97%
-    # val acc 83.5%
-    # loss 0.27
-    # val loss 0.39
 
     # results
     # acc 99%

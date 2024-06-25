@@ -5,12 +5,9 @@ import tensorflow_text as text
 import tensorflow as tf
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from keras.layers import Dense, Dropout, Input, Concatenate, Conv1D, MaxPooling1D, Flatten, Embedding, Reshape
-from keras.models import Model
-from keras.optimizers import Adam, Adadelta
+from sklearn.metrics import confusion_matrix, classification_report
 from matplotlib import pyplot as plt
 import numpy as np
-from sklearn.metrics import confusion_matrix, classification_report
 
 if __name__ == '__main__':
     fake_news = pd.read_csv('data/Fake.csv')
@@ -21,67 +18,54 @@ if __name__ == '__main__':
 
     news = pd.concat([fake_news, true_news])
     df = news[['title', 'label']]
+    # df = pd.concat([fake_news[:1000], true_news[:1000]])[['title', 'label']]
 
     x_train, x_test, y_train, y_test = train_test_split(df['title'], df['label'], test_size=0.1, random_state=42, shuffle=True, stratify=df['label'])
 
     # Use the bert preprocessor and bert encoder from tensorflow_hub
-    bert_preprocess = hub.KerasLayer("https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3")
-    bert_encoder = hub.KerasLayer("https://www.kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-l-24-h-1024-a-16/4", trainable=True)
+    # bert_preprocess = hub.KerasLayer("https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3")
+    # bert_encoder = hub.KerasLayer('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4', trainable=True)
 
-
-    # bert_preprocess = hub.KerasLayer( "https://kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-preprocess/3")
-    # bert_encoder = hub.KerasLayer("https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-4_H-256_A-4/1", trainable=True)
+    bert_preprocess = hub.KerasLayer( "https://kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-preprocess/3")
+    bert_encoder = hub.KerasLayer("https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-4_H-256_A-4/1", trainable=True)
 
     input_layer = tf.keras.layers.Input(shape=(), dtype=tf.string, name='news')
     bert_processed = bert_preprocess(input_layer)
-    bert_output = bert_encoder(bert_processed)['pooled_output']
-    x = Reshape((bert_output.shape[1], 1))(bert_output)
+    bert_output = bert_encoder(bert_processed)
+    hidden = bert_output['pooled_output']
+    hidden = tf.keras.layers.Reshape((hidden.shape[1], 1))(hidden)
+    hidden = tf.keras.layers.LSTM(128)(hidden)
+    # hidden = tf.keras.layers.Dropout(0.2)(hidden)
+    # hidden = tf.keras.layers.Dense(256, activation='relu')(hidden)
+    hidden = tf.keras.layers.Dropout(0.2)(hidden)
+    output = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(hidden)
 
-    x1 = Conv1D(filters=128, kernel_size=5, activation='relu')(x)
-    x1 = MaxPooling1D(pool_size=5, strides=5)(x1)
-
-    x2 = Conv1D(filters=128, kernel_size=4, activation='relu')(x)
-    x2 = MaxPooling1D(pool_size=5, strides=5)(x2)
-
-    x3 = Conv1D(filters=128, kernel_size=3, activation='relu')(x)
-    x3 = MaxPooling1D(pool_size=5, strides=5)(x3)
-
-    x = Concatenate(axis=1)([x1, x2, x3])
-    #
-    x = Conv1D(filters=128, kernel_size=5, activation='relu')(x)
-    x = MaxPooling1D(pool_size=5, strides=5)(x)
-
-    x = Conv1D(filters=128, kernel_size=5, activation='relu')(x)
-    x = MaxPooling1D(pool_size=5, strides=5)(x)
-
-    x = Flatten()(x)
-    x = tf.keras.layers.Dropout(0.2, name='dropout2')(x)
-    x = tf.keras.layers.Dense(128, activation='relu', name='hidden')(x)
-    x = tf.keras.layers.Dropout(0.2, name='dropout1')(x)
-    x = tf.keras.layers.Dense(128, activation='relu', name='hidden1')(x)
-    x = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(x)
-
-    model = tf.keras.Model(inputs=[input_layer], outputs=[x])
+    model = tf.keras.Model(inputs=[input_layer], outputs=[output])
 
     # Compile model on adam optimizer, binary_crossentropy loss, and accuracy metrics
+    epochs = 5
+    # tf.keras.optimizers.Adam(learning_rate=5e-5)
     loss = tf.keras.losses.BinaryCrossentropy(from_logits=False)
-    metric = tf.keras.metrics.BinaryAccuracy()
-    model.compile(optimizer='adam', loss=loss, metrics=[metric])
+    metrics = tf.metrics.BinaryAccuracy()
 
+    model.compile(optimizer='adam', loss=loss, metrics=metrics)
     model.summary()
 
     # Train model on 5 epochs
-    history = model.fit(x_train, y_train, epochs=5, batch_size=32, validation_split=0.2)
-    model.save_weights('fakebert.weights.h5')
+    history = model.fit(x_train, y_train, epochs=epochs, batch_size=32*2, validation_split=0.2)
 
     # Evaluate model on test data
     loss, accuracy = model.evaluate(x_test, y_test)
+
     print(f'Test Loss: {loss}')
     print(f'Test Accuracy: {accuracy}')
 
+    # model.load_weights('bert_lstm.weights.h5')
+    model.save_weights('bert_lstm.weights.h5')
+
     # "Accuracy"
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
+    plt.plot(history.history['binary_accuracy'])
+    plt.plot(history.history['val_binary_accuracy'])
     plt.title('model accuracy')
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
@@ -97,10 +81,11 @@ if __name__ == '__main__':
     plt.legend(['train', 'validation'], loc='upper left')
     plt.show()
 
-    # Confusion matrix
     y_pred = model.predict(x_test)
     y_pred = np.where(y_pred >= 0.5, 1, 0)
     print(y_pred)
+
+    # Confusion matrix
     cm = confusion_matrix(y_test, y_pred)
     plt.figure(figsize=(8, 6))
     plt.imshow(cm, cmap=plt.cm.Blues, interpolation='nearest')
@@ -127,6 +112,6 @@ if __name__ == '__main__':
     target_names = ['fake news', 'real news']
     print(classification_report(y_test, y_pred, target_names=target_names))
 
-    # results:
-    # acc 93%
-    # val_acc 93%
+    # Results
+    # accuracy
+    # val accuracy
