@@ -4,7 +4,7 @@ import tensorflow as tf
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
-
+tf.get_logger().setLevel('ERROR')
 if __name__ == '__main__':
     fake_news = pd.read_csv('data/Fake.csv')
     fake_news['label'] = 0
@@ -19,31 +19,28 @@ if __name__ == '__main__':
 
     # Use the bert preprocessor and bert encoder from tensorflow_hub
     # bert_preprocess = hub.KerasLayer("https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3")
-    # bert_encoder = hub.KerasLayer('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4', trainable=True)
+    # bert_encoder = hub.KerasLayer('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4', trainable=False)
 
     bert_preprocess = hub.KerasLayer( "https://kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-preprocess/3")
-    # encoder = hub.load("https://www.kaggle.com/models/tensorflow/bert/TensorFlow2/bert-en-uncased-l-8-h-128-a-2/2")
-    # bert_encoder = hub.KerasLayer(encoder.mlm, trainable=True)
-    bert_encoder = hub.KerasLayer("https://www.kaggle.com/models/tensorflow/bert/TensorFlow2/bert-en-uncased-l-10-h-128-a-2/2", trainable=True)
+    bert_encoder = hub.KerasLayer("https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-4_H-256_A-4/1", trainable=False)
 
     # Input Layers
     input_layer = tf.keras.layers.Input(shape=(), dtype=tf.string, name='news')
 
     # BERT layers
-    processed = bert_preprocess(input_layer)
-    output = bert_encoder(processed)
-
-    # Fully Connected Layers
-    # layer = tf.keras.layers.Dropout(0.2, name='dropout')(output['mlm_logits'])
-    # layer = tf.keras.layers.Dropout(0.2, name='dropout')(output['pooled_output'])
-    # layer = tf.keras.layers.Dense(10, activation='relu', name='hidden')(layer)
-    # layer = tf.keras.layers.Dropout(0.2, name='dropout')(output['pooled_output'])
-    # layer = tf.keras.layers.Dense(10, activation='relu', name='hidden')(layer)
-    layer = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(output['pooled_output'])
+    bert_processed = bert_preprocess(input_layer)
+    bert_output = bert_encoder(bert_processed)
+    layer = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(bert_output['pooled_output'])
 
     model = tf.keras.Model(inputs=[input_layer], outputs=[layer])
+
     # Compile model on adam optimizer, binary_crossentropy loss, and accuracy metrics
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    epochs = 5
+    # tf.keras.optimizers.Adam(learning_rate=5e-5)
+    loss = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+    metrics = tf.metrics.BinaryAccuracy()
+
+    model.compile(optimizer='adam', loss=loss, metrics=metrics)
 
     model.summary()
 

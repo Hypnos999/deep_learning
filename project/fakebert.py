@@ -7,6 +7,7 @@ from keras.layers import Dense, Dropout, Input, Concatenate, Conv1D, MaxPooling1
 from keras.models import Model
 from keras.optimizers import Adam, Adadelta
 from matplotlib import pyplot as plt
+tf.get_logger().setLevel('ERROR')
 
 if __name__ == '__main__':
     fake_news = pd.read_csv('data/Fake.csv')
@@ -21,11 +22,14 @@ if __name__ == '__main__':
     x_train, x_test, y_train, y_test = train_test_split(df['title'], df['label'], test_size=0.1, random_state=42, shuffle=True, stratify=df['label'])
 
     # Use the bert preprocessor and bert encoder from tensorflow_hub
-    bert_preprocess = hub.KerasLayer("https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3")
-    bert_encoder = hub.KerasLayer('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4', trainable=True)
+    #bert_preprocess = hub.KerasLayer("https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3")
+    #bert_encoder = hub.KerasLayer('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4', trainable=True)
 
     # bert_preprocess = hub.KerasLayer( "https://kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-preprocess/3")
     # bert_encoder = hub.KerasLayer("https://www.kaggle.com/models/tensorflow/bert/TensorFlow2/bert-en-uncased-l-10-h-128-a-2/2")
+
+    bert_encoder = hub.KerasLayer("https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-4_H-256_A-4/1", trainable=False)
+    bert_preprocess = hub.KerasLayer( "https://kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-preprocess/3")
 
     # Input Layers
     input_layer = tf.keras.layers.Input(shape=(), dtype=tf.string, name='news')
@@ -65,7 +69,7 @@ if __name__ == '__main__':
     model.summary()
 
     # Train model on 5 epochs
-    model.fit(x_train, y_train, epochs=5, batch_size=32, validation_split=0.2)
+    history = model.fit(x_train, y_train, epochs=5, batch_size=32, validation_split=0.2)
 
     # Evaluate model on test data
     loss, accuracy = model.evaluate(x_test, y_test)
@@ -73,24 +77,11 @@ if __name__ == '__main__':
     print(f'Test Loss: {loss}')
     print(f'Test Accuracy: {accuracy}')
 
-    model = Model(input_layer, x)
-    # optimizer = Adam()
-    # optimizer = Adadelta(learning_rate=1e-5)
-    optimizer = Adadelta()
-    model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['sparse_categorical_accuracy'])
-
-    print(model.summary())
-    history = model.fit(x_train, y_train, epochs=5, validation_split=0.2, batch_size=16*2*2)
-
-    loss, accuracy = model.evaluate(x_test, y_test)
-    print(f'Test Loss: {loss:.4f}')
-    print(f'Test Accuracy: {accuracy:.4f}')
-
     model.save_weights('fakebert.weights.h5')
 
     # "Accuracy"
-    plt.plot(history.history['sparse_categorical_accuracy'])
-    plt.plot(history.history['val_sparse_categorical_accuracy'])
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
     plt.title('model accuracy')
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
@@ -107,12 +98,5 @@ if __name__ == '__main__':
     plt.show()
 
     # results:
-    # acc 85%
-    # val_acc 83.5%
-    # loss 0.27
-    # val loss 0.39
-
-
-
-
-
+    # acc 93%
+    # val_acc 93%

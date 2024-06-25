@@ -5,8 +5,8 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 import nltk
 import re
-# from matplotlib import pyplot as plt
-
+from matplotlib import pyplot as plt
+tf.get_logger().setLevel('ERROR')
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -49,13 +49,11 @@ if __name__ == '__main__':
     df["title"] = df["title"].apply(oneHot)
     print(df.head())
 
-
     new_df = pd.DataFrame(tf.keras.utils.pad_sequences(df["title"], padding="pre", maxlen=MAXLEN))
-    #df = pd.concat((df, new_df), axis=1)
-    print('')
+    # df = pd.concat((df, new_df), axis=1)
     x_train, x_test, y_train, y_test = train_test_split(new_df, df['label'], test_size=0.1, random_state=42,
                                                         shuffle=True, stratify=df['label'])
-
+    print(x_train[:10])
     model = Sequential(
         layers=(
             Embedding(VOCAB_SIZE, DIMENSION, input_length=len(cols)),
@@ -87,5 +85,4 @@ if __name__ == '__main__':
     # acc 99%
     # val acc 94%
     # loss 0.02
-    #val loss 0.017
-
+    # val loss 0.017
