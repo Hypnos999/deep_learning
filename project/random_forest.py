@@ -47,7 +47,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('data/WELFake_Dataset.csv')
+    df = pd.read_csv('other dataset/WELFake_Dataset.csv')
     print(df.shape)
 
     df.dropna(subset=['text', 'title'], inplace=True)

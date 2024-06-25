@@ -5,11 +5,11 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 import nltk
 import re
-#from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 
-#nltk.download('stopwords')
-#nltk.download('punkt')
-#nltk.download('wordnet')
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
 
 if __name__ == '__main__':
     fake_news = pd.read_csv('data/Fake.csv')
@@ -76,7 +76,6 @@ if __name__ == '__main__':
     print(f'Test Accuracy: {accuracy:.4f}')
 
     model.save_weights('lstm.weights.h5')
-
 
     # results WELFAKE:
     # acc 97%
