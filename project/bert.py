@@ -39,7 +39,7 @@ if __name__ == '__main__':
     # layer = tf.keras.layers.Dense(10, activation='relu', name='hidden')(layer)
     # layer = tf.keras.layers.Dropout(0.2, name='dropout')(output['pooled_output'])
     # layer = tf.keras.layers.Dense(10, activation='relu', name='hidden')(layer)
-    layer = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(layer)
+    layer = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(output['pooled_output'])
 
     model = tf.keras.Model(inputs=[input_layer], outputs=[layer])
     # Compile model on adam optimizer, binary_crossentropy loss, and accuracy metrics
