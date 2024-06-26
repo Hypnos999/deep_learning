@@ -1,23 +1,13 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow_hub as hub
+import tensorflow_text as text
 import tensorflow as tf
-from keras import Sequential
-from keras.layers import Dense, Dropout, Input, Concatenate, Conv1D, MaxPooling1D, Flatten, Embedding, Reshape, Bidirectional
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, classification_report
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-import nltk
-import re
 from matplotlib import pyplot as plt
 import numpy as np
-tf.get_logger().setLevel('ERROR')
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('wordnet')
-from nltk.corpus import stopwords
-STOPWORDS = set(stopwords.words('english'))
 
 if __name__ == '__main__':
     x_train = np.load('data/train/x_train.npy', allow_pickle=True)
@@ -25,34 +15,35 @@ if __name__ == '__main__':
     y_train = np.load('data/train/y_train.npy', allow_pickle=True)
     y_test = np.load('data/test/y_test.npy', allow_pickle=True)
 
-    VOCAB_SIZE = 10000
-    DIMENSION = 100
-    MAXLEN = 512
-    cols = [i for i in range(0, MAXLEN)]
+    # BERT base
+    # bert_preprocess = hub.KerasLayer("https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3")
+    # bert_encoder = hub.KerasLayer('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4', trainable=True)
 
-    tokenizer = Tokenizer(num_words=VOCAB_SIZE)
-    tokenizer.fit_on_texts(x_train)
-    word_index = tokenizer.word_index
-    dict(list(word_index.items())[0:10])
-
-    x_train = tokenizer.texts_to_sequences(x_train)
-    x_train = pad_sequences(x_train, maxlen=MAXLEN, padding="post", truncating="post")
-    x_test = tokenizer.texts_to_sequences(x_test)
-    x_test = pad_sequences(x_test, maxlen=MAXLEN, padding="post", truncating="post")
-
-    model = Sequential(
-        layers=(
-            Embedding(VOCAB_SIZE, DIMENSION, input_length=MAXLEN),
-            Bidirectional(tf.keras.layers.LSTM(512, return_sequences=True)),
-            Dropout(0.2),
-            Bidirectional(tf.keras.layers.LSTM(512)),
-            Dropout(0.2),
-            Dense(1, activation="sigmoid")
-        )
+    # BERT tiny
+    # bert_preprocess = hub.KerasLayer( "https://kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-preprocess/3", name="BERT_preprocessing")
+    # bert_encoder = hub.KerasLayer("https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-4_H-256_A-4/1", trainable=True, name="BERT_encoder")
+    #
+    # input_layer = tf.keras.layers.Input(shape=(), dtype=tf.string, name='input')
+    # bert_processed = bert_preprocess(input_layer)
+    # bert_output = bert_encoder(bert_processed)
+    # hidden = bert_output['pooled_output']
+    # hidden = tf.keras.layers.Reshape((hidden.shape[1], 1))(hidden)
+    # hidden = tf.keras.layers.Conv1D(filters=128, kernel_size=5, activation='relu')(hidden)
+    # hidden = tf.keras.layers.MaxPooling1D(pool_size=5, strides=5)(hidden)
+    # hidden = tf.keras.layers.Conv1D(filters=128, kernel_size=4, activation='relu')(hidden)
+    # hidden = tf.keras.layers.MaxPooling1D(pool_size=4, strides=4)(hidden)
+    # hidden = tf.keras.layers.Flatten()(hidden)
+    # hidden = tf.keras.layers.Dropout(0.2)(hidden)
+    # hidden = tf.keras.layers.Dense(256, activation='relu', name='dense_1')(hidden)
+    # hidden = tf.keras.layers.Dropout(0.2)(hidden)
+    # hidden = tf.keras.layers.Dense(128, activation='relu', name='dense_2')(hidden)
+    # output = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(hidden)
+    #
+    # model = tf.keras.Model(inputs=[input_layer], outputs=[output])
+    model = tf.keras.models.load_model(
+        'results/bert_cnn/bert_cnn.h5',
+        custom_objects={'KerasLayer': hub.KerasLayer}
     )
-
-    model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
-    model.summary()
 
     # Define the early stopping callback
     early_stop = tf.keras.callbacks.EarlyStopping(
@@ -62,10 +53,18 @@ if __name__ == '__main__':
         restore_best_weights=True  # Restore the best model weights after training
     )
 
-    # history = model.fit(x_train, y_train, epochs=10, validation_split=0.2, batch_size=16*2*2, callbacks=[early_stop])
-    # model.save('results/lstm/lstm.h5')
-    # model.save_weights('results/lstm/lstm.weights.h5')
-    model.load_weights('results/lstm/lstm.weights.h5')
+    epochs = 10
+    optimizer = tf.keras.optimizers.Adam(learning_rate=5e-5)
+    loss = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+    metrics = tf.metrics.BinaryAccuracy()
+
+    model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+    model.summary()
+
+    # history = model.fit(x_train, y_train, epochs=epochs, batch_size=32*2, validation_split=0.2, callbacks=[early_stop])
+    # model.save('results/bert_cnn/bert_cnn.h5')
+    # model.save_weights('results/bert_cnn/bert_cnn.weights.h5')
+    model.load_weights('results/bert_cnn/bert_cnn.weights.h5')
 
     # x = np.concatenate((x_test, x_train))
     # y = np.concatenate((y_test, y_train))
@@ -75,17 +74,17 @@ if __name__ == '__main__':
     y_pred = np.where(y_pred >= 0.5, 1, 0)
 
     # loss, accuracy = model.evaluate(x_test, y_test)
-    # print(f'Test Loss: {loss:.4f}')
-    # print(f'Test Accuracy: {accuracy:.4f}')
+    # print(f'Test Loss: {loss}')
+    # print(f'Test Accuracy: {accuracy}')
 
     # # Accuracy
-    # plt.plot(history.history['accuracy'])
-    # plt.plot(history.history['val_accuracy'])
+    # plt.plot(history.history['binary_accuracy'])
+    # plt.plot(history.history['val_binary_accuracy'])
     # plt.title('model accuracy')
     # plt.ylabel('accuracy')
     # plt.xlabel('epoch')
     # plt.legend(['train', 'validation'], loc='upper left')
-    # plt.savefig('results/lstm/accuracy.png')
+    # plt.savefig('results/bert_cnn/accuracy.png')
     # plt.show()
     #
     # # Loss
@@ -95,7 +94,7 @@ if __name__ == '__main__':
     # plt.ylabel('loss')
     # plt.xlabel('epoch')
     # plt.legend(['train', 'validation'], loc='upper left')
-    # plt.savefig('results/lstm/loss.png')
+    # plt.savefig('results/bert_cnn/loss.png')
     # plt.show()
 
     # Confusion matrix
@@ -118,7 +117,7 @@ if __name__ == '__main__':
                      color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
-    plt.savefig('results/lstm/confusion_matrix.png')
+    plt.savefig('results/bert_cnn/confusion_matrix.png')
     plt.show()
 
     # Classification report
@@ -141,5 +140,5 @@ if __name__ == '__main__':
     plt.xlabel('Metrics')
     plt.ylabel('Classes')
     plt.title('Classification Report with Support')
-    plt.savefig('results/lstm/classification_report.png')
+    plt.savefig('results/bert_cnn/classification_report.png')
     plt.show()

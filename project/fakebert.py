@@ -13,26 +13,20 @@ import numpy as np
 from sklearn.metrics import confusion_matrix, classification_report
 
 if __name__ == '__main__':
-    fake_news = pd.read_csv('data/Fake.csv')
-    fake_news['label'] = 0
+    x_train = np.load('data/train/x_train.npy', allow_pickle=True)
+    x_test = np.load('data/test/x_test.npy', allow_pickle=True)
+    y_train = np.load('data/train/y_train.npy', allow_pickle=True)
+    y_test = np.load('data/test/y_test.npy', allow_pickle=True)
 
-    true_news = pd.read_csv('data/True.csv')
-    true_news['label'] = 1
+    # BERT base
+    # bert_preprocess = hub.KerasLayer("https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3")
+    # bert_encoder = hub.KerasLayer('https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/4', trainable=True)
 
-    news = pd.concat([fake_news, true_news])
-    df = news[['title', 'label']]
+    # BERT tiny
+    bert_preprocess = hub.KerasLayer("https://kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-preprocess/3", name="BERT_preprocessing")
+    bert_encoder = hub.KerasLayer("https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-4_H-256_A-4/1", trainable=True, name="BERT_encoder")
 
-    x_train, x_test, y_train, y_test = train_test_split(df['title'], df['label'], test_size=0.1, random_state=42, shuffle=True, stratify=df['label'])
-
-    # Use the bert preprocessor and bert encoder from tensorflow_hub
-    bert_preprocess = hub.KerasLayer("https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3")
-    bert_encoder = hub.KerasLayer("https://www.kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-l-24-h-1024-a-16/4", trainable=True)
-
-
-    # bert_preprocess = hub.KerasLayer( "https://kaggle.com/models/tensorflow/bert/TensorFlow2/en-uncased-preprocess/3")
-    # bert_encoder = hub.KerasLayer("https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-4_H-256_A-4/1", trainable=True)
-
-    input_layer = tf.keras.layers.Input(shape=(), dtype=tf.string, name='news')
+    input_layer = tf.keras.layers.Input(shape=(), dtype=tf.string, name='input')
     bert_processed = bert_preprocess(input_layer)
     bert_output = bert_encoder(bert_processed)['pooled_output']
     x = Reshape((bert_output.shape[1], 1))(bert_output)
@@ -56,7 +50,7 @@ if __name__ == '__main__':
 
     x = Flatten()(x)
     x = tf.keras.layers.Dropout(0.2, name='dropout2')(x)
-    x = tf.keras.layers.Dense(128, activation='relu', name='hidden')(x)
+    x = tf.keras.layers.Dense(256, activation='relu', name='hidden')(x)
     x = tf.keras.layers.Dropout(0.2, name='dropout1')(x)
     x = tf.keras.layers.Dense(128, activation='relu', name='hidden1')(x)
     x = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(x)
@@ -64,9 +58,10 @@ if __name__ == '__main__':
     model = tf.keras.Model(inputs=[input_layer], outputs=[x])
 
     # Compile model on adam optimizer, binary_crossentropy loss, and accuracy metrics
+    optimizer = tf.keras.optimizers.Adam(learning_rate=5e-5)
     loss = tf.keras.losses.BinaryCrossentropy(from_logits=False)
     metric = tf.keras.metrics.BinaryAccuracy()
-    model.compile(optimizer='adam', loss=loss, metrics=[metric])
+    model.compile(optimizer=optimizer, loss=loss, metrics=[metric])
 
     model.summary()
 
@@ -79,7 +74,7 @@ if __name__ == '__main__':
     print(f'Test Loss: {loss}')
     print(f'Test Accuracy: {accuracy}')
 
-    # "Accuracy"
+    # Accuracy
     plt.plot(history.history['accuracy'])
     plt.plot(history.history['val_accuracy'])
     plt.title('model accuracy')
@@ -88,7 +83,7 @@ if __name__ == '__main__':
     plt.legend(['train', 'validation'], loc='upper left')
     plt.show()
 
-    # "Loss"
+    # Loss
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.title('model loss')

@@ -43,6 +43,8 @@ if __name__ == '__main__':
     model = Sequential(
         layers=(
             Embedding(VOCAB_SIZE, DIMENSION, input_length=MAXLEN),
+            Conv1D(filters=128, kernel_size=5, activation='relu'),
+            MaxPooling1D(pool_size=5, strides=5),
             Bidirectional(tf.keras.layers.LSTM(512, return_sequences=True)),
             Dropout(0.2),
             Bidirectional(tf.keras.layers.LSTM(512)),
@@ -62,10 +64,10 @@ if __name__ == '__main__':
         restore_best_weights=True  # Restore the best model weights after training
     )
 
-    # history = model.fit(x_train, y_train, epochs=10, validation_split=0.2, batch_size=16*2*2, callbacks=[early_stop])
-    # model.save('results/lstm/lstm.h5')
-    # model.save_weights('results/lstm/lstm.weights.h5')
-    model.load_weights('results/lstm/lstm.weights.h5')
+    # history = model.fit(x_train, y_train, epochs=10, validation_split=0.2, batch_size=16*2, callbacks=[early_stop])
+    # model.save('results/cnn_lstm/cnn_lstm.h5')
+    # model.save_weights('results/cnn_lstm/cnn_lstm.weights.h5')
+    model.load_weights('results/cnn_lstm/cnn_lstm.weights.h5')
 
     # x = np.concatenate((x_test, x_train))
     # y = np.concatenate((y_test, y_train))
@@ -85,7 +87,7 @@ if __name__ == '__main__':
     # plt.ylabel('accuracy')
     # plt.xlabel('epoch')
     # plt.legend(['train', 'validation'], loc='upper left')
-    # plt.savefig('results/lstm/accuracy.png')
+    # plt.savefig('results/cnn_lstm/accuracy.png')
     # plt.show()
     #
     # # Loss
@@ -95,7 +97,7 @@ if __name__ == '__main__':
     # plt.ylabel('loss')
     # plt.xlabel('epoch')
     # plt.legend(['train', 'validation'], loc='upper left')
-    # plt.savefig('results/lstm/loss.png')
+    # plt.savefig('results/cnn_lstm/loss.png')
     # plt.show()
 
     # Confusion matrix
@@ -118,7 +120,7 @@ if __name__ == '__main__':
                      color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
-    plt.savefig('results/lstm/confusion_matrix.png')
+    plt.savefig('results/cnn_lstm/confusion_matrix.png')
     plt.show()
 
     # Classification report
@@ -141,5 +143,5 @@ if __name__ == '__main__':
     plt.xlabel('Metrics')
     plt.ylabel('Classes')
     plt.title('Classification Report with Support')
-    plt.savefig('results/lstm/classification_report.png')
+    plt.savefig('results/cnn_lstm/classification_report.png')
     plt.show()

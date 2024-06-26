@@ -1,3 +1,16 @@
+import numpy as np
+import pandas as pd
+fake_news = pd.read_csv('data/original/Fake.csv')
+fake_news['label'] = 0
+
+true_news = pd.read_csv('data/original/True.csv')
+true_news['label'] = 1
+
+news = pd.concat([fake_news, true_news])
+# df = (news[['text', 'label']]
+df = news.dropna().drop_duplicates()
+print(df['subject'].value_counts())
+
 from newsapi import NewsApiClient
 
 # Init
