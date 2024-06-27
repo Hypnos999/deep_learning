@@ -66,10 +66,10 @@ def predict_news(news_text):
     # ... (your code to preprocess the text)
 
     # Make prediction using your TensorFlow model
-    prediction = model.predict(preprocessed_text)
+    prediction = model.predict([news_text])
     print(prediction)
 
-    if prediction >= 0.5:
+    if prediction <= 0.5:
         return "Real News"
     else:
         return "Fake News"
@@ -79,10 +79,30 @@ class FakeNewsDetector(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Fake News Detector")
+        self.setStyleSheet("""
+               QMainWindow {
+                   background-color: #f0f0f0;
+               }
+               QTextEdit {
+                   font-family: Arial;
+                   font-size: 14px;
+                   background-color: #ffffff;
+                   border: 1px solid #cccccc;
+               }
+               QPushButton {
+                   font-family: Arial;
+                   font-size: 14px;
+                   background-color: #4CAF50;
+                   color: #ffffff;
+                   padding: 10px 20px;
+                   border: none;
+                   border-radius: 4px;
+               }
+           """)
 
         # Create a text area to display news
         self.news_text = QTextEdit()
-        font = QFont("Arial", 14)
+        font = QFont("Arial", 16)
         self.news_text.setFont(font)
 
         # Create a button to fetch news from the API and predict if it's fake or not
@@ -111,7 +131,7 @@ class FakeNewsDetector(QMainWindow):
             self.news_text.append('Date: ' + news_item['date'] + ' ' + news_item['time'])
             self.news_text.append('From: ' + news_item['source']['title'])
             self.news_text.append('Title: ' + news_item["title"])
-            prediction = predict_news(news_item["title"])
+            prediction = predict_news(news_item["body"])
             self.news_text.append(f"AI Prediction: {prediction}\n")
 
 if __name__ == "__main__":

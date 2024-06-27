@@ -17,7 +17,6 @@ nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 from nltk.corpus import stopwords
-STOPWORDS = set(stopwords.words('english'))
 
 if __name__ == '__main__':
     x_train = np.load('data/train/x_train.npy', allow_pickle=True)
